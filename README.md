@@ -1,14 +1,45 @@
 # LLM-Forge
 
-[![CI](https://github.com/llm-dev-ops/llm-forge/workflows/Continuous%20Integration/badge.svg)](https://github.com/llm-dev-ops/llm-forge/actions)
-[![Security](https://github.com/llm-dev-ops/llm-forge/workflows/Security%20Scanning/badge.svg)](https://github.com/llm-dev-ops/llm-forge/actions)
-[![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen)](https://codecov.io/gh/llm-dev-ops/llm-forge)
+[![CI](https://github.com/globalbusinessadvisors/llm-forge/workflows/Continuous%20Integration/badge.svg)](https://github.com/globalbusinessadvisors/llm-forge/actions)
+[![Security](https://github.com/globalbusinessadvisors/llm-forge/workflows/Security%20Scanning/badge.svg)](https://github.com/globalbusinessadvisors/llm-forge/actions)
+[![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen)](https://codecov.io/gh/globalbusinessadvisors/llm-forge)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![npm version](https://img.shields.io/npm/v/@llm-dev-ops/llm-forge.svg)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
+[![Node.js Version](https://img.shields.io/node/v/@llm-dev-ops/llm-forge)](https://nodejs.org)
+[![Downloads](https://img.shields.io/npm/dm/@llm-dev-ops/llm-forge.svg)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
 
 > A unified response parser and SDK generator for LLM APIs across multiple programming languages
 
-LLM-Forge provides a production-ready, type-safe way to parse and normalize responses from multiple LLM providers (OpenAI, Anthropic, Cohere, Google AI, Mistral, and more) with support for generating client libraries in 6 languages: **TypeScript**, **Python**, **Rust**, **Go**, **Java**, and **C#**.
+LLM-Forge provides a **production-ready, type-safe** way to parse and normalize responses from multiple LLM providers (OpenAI, Anthropic, Cohere, Google AI, Mistral, and more) with support for generating client libraries in **6 languages**: TypeScript, Python, Rust, Go, Java, and C#.
+
+**Why LLM-Forge?**
+- 🔄 **Unified API** - One interface for 12+ LLM providers
+- 🚀 **Ultra-Fast** - 136K-454K ops/sec parsing performance
+- 🛡️ **Type-Safe** - Full TypeScript inference and validation
+- 🧪 **Battle-Tested** - 666 tests, 93.77% coverage
+- 📦 **Zero Dependencies** - Lightweight, production-ready
+- 🌐 **Multi-Language** - Generate SDKs in 6 languages
+
+---
+
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Status](#-status)
+- [Quick Start](#-quick-start)
+- [Use Cases](#-use-cases)
+- [Supported Providers](#-supported-providers)
+- [Code Generation](#-code-generation)
+- [Performance](#-performance)
+- [Testing](#-testing)
+- [Security](#-security)
+- [Documentation](#-documentation)
+- [Development](#-development)
+- [Contributing](#-contributing)
+- [Roadmap](#-roadmap)
+- [Support](#-support)
+
+---
 
 ## ✨ Features
 
@@ -55,7 +86,14 @@ Documentation:  Complete ✅
 ### Installation
 
 ```bash
+# Using npm
 npm install @llm-dev-ops/llm-forge
+
+# Using yarn
+yarn add @llm-dev-ops/llm-forge
+
+# Using pnpm
+pnpm add @llm-dev-ops/llm-forge
 ```
 
 ### Basic Usage - Response Parsing
@@ -63,13 +101,16 @@ npm install @llm-dev-ops/llm-forge
 ```typescript
 import { parseResponse } from '@llm-dev-ops/llm-forge';
 
-// Parse any LLM provider response
+// Parse any LLM provider response - automatically detects the provider
 const response = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',
-  headers: { 'Authorization': `Bearer ${apiKey}` },
+  headers: {
+    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
   body: JSON.stringify({
     model: 'gpt-4',
-    messages: [{ role: 'user', content: 'Hello!' }]
+    messages: [{ role: 'user', content: 'Hello, world!' }]
   })
 });
 
@@ -78,10 +119,56 @@ const parsed = await parseResponse(data);
 
 if (parsed.success) {
   console.log(parsed.response.messages[0].content);
+  // Output: "Hello! How can I help you today?"
+
   console.log(`Provider: ${parsed.response.provider}`);
+  // Output: "Provider: openai"
+
   console.log(`Model: ${parsed.response.model.id}`);
+  // Output: "Model: gpt-4"
+
   console.log(`Tokens: ${parsed.response.usage.totalTokens}`);
+  // Output: "Tokens: 25"
 }
+```
+
+### Real-World Example - Multi-Provider Chat
+
+```typescript
+import { parseResponse } from '@llm-dev-ops/llm-forge';
+
+async function chat(provider: 'openai' | 'anthropic' | 'cohere', message: string) {
+  // Use any provider's API - LLM-Forge normalizes the response
+  const endpoints = {
+    openai: 'https://api.openai.com/v1/chat/completions',
+    anthropic: 'https://api.anthropic.com/v1/messages',
+    cohere: 'https://api.cohere.ai/v1/chat'
+  };
+
+  const response = await fetch(endpoints[provider], {
+    method: 'POST',
+    headers: { /* provider-specific headers */ },
+    body: JSON.stringify({ /* provider-specific payload */ })
+  });
+
+  const data = await response.json();
+  const parsed = await parseResponse(data);
+
+  if (parsed.success) {
+    return {
+      text: parsed.response.messages[0].content,
+      tokens: parsed.response.usage.totalTokens,
+      cost: calculateCost(parsed.response.usage, parsed.response.model.id)
+    };
+  }
+
+  throw new Error(parsed.error.message);
+}
+
+// Works seamlessly with any provider
+const openAIResult = await chat('openai', 'Explain quantum computing');
+const claudeResult = await chat('anthropic', 'Explain quantum computing');
+const cohereResult = await chat('cohere', 'Explain quantum computing');
 ```
 
 ### Auto-Detection
@@ -94,6 +181,26 @@ const openAIResponse = await parseResponse(openAIData);    // Detects OpenAI
 const anthropicResponse = await parseResponse(claudeData); // Detects Anthropic
 const cohereResponse = await parseResponse(cohereData);    // Detects Cohere
 ```
+
+## 💡 Use Cases
+
+### 1. Multi-Provider Chatbots
+Build chatbots that can seamlessly switch between different LLM providers based on cost, performance, or availability.
+
+### 2. LLM Abstraction Layer
+Create a unified interface for your application that works with any LLM provider, making it easy to switch providers or A/B test different models.
+
+### 3. Cost Optimization
+Parse usage data from multiple providers to track and optimize token usage and costs across your organization.
+
+### 4. SDK Generation
+Generate type-safe client libraries in multiple programming languages from OpenAPI specifications, accelerating development across teams.
+
+### 5. LLM Gateway/Proxy
+Build an LLM gateway that routes requests to different providers, normalizes responses, and provides unified monitoring and analytics.
+
+### 6. Testing & Development
+Easily switch between providers during development and testing without changing your application code.
 
 ### Provider-Specific Parsing
 
@@ -297,22 +404,23 @@ See [.github/README.md](.github/README.md) for workflow documentation.
 - [Language Strategy](docs/language-strategy.md) - Multi-language support
 
 ### Reference
-- [Implementation Summary](IMPLEMENTATION_COMPLETE.md) - Complete implementation details
-- [Next Steps](NEXT_STEPS.md) - Deployment guide
+- [Implementation Summary](docs/IMPLEMENTATION_COMPLETE.md) - Complete implementation details
+- [DevOps Deliverables](docs/DEVOPS_DELIVERABLES.md) - CI/CD and deployment details
+- [Multi-Language Success](docs/MULTI-LANGUAGE-SUCCESS.md) - Code generation implementation
 
 ## 🛠️ Development
 
 ### Prerequisites
 
-- Node.js 20+
-- npm 9+
-- TypeScript 5.3+
+- Node.js >= 20.0.0
+- npm >= 10.0.0
+- TypeScript >= 5.3.3
 
 ### Setup
 
 ```bash
 # Clone repository
-git clone https://github.com/llm-dev-ops/llm-forge.git
+git clone https://github.com/globalbusinessadvisors/llm-forge.git
 cd llm-forge
 
 # Install dependencies
@@ -321,11 +429,32 @@ npm install
 # Run tests
 npm test
 
-# Build
+# Build project
 npm run build
+
+# Run development mode
+npm run dev
 
 # Run benchmarks
 npm run bench
+
+# Run all quality checks
+npm run quality
+```
+
+### CLI Usage
+
+LLM-Forge includes a command-line interface for generating SDKs:
+
+```bash
+# Run CLI in development
+npm run cli -- --help
+
+# Generate SDK from OpenAPI spec
+npm run cli -- generate --input openapi.json --output ./sdk --language typescript
+
+# After installation (globally or in project)
+npx llm-forge generate --input openapi.json --language python
 ```
 
 ### Project Structure
@@ -468,12 +597,20 @@ Security:           Multi-layer scanning
 ## 🆘 Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/llm-dev-ops/llm-forge/issues)
-- **CI/CD Status**: [GitHub Actions](https://github.com/llm-dev-ops/llm-forge/actions)
-- **Coverage**: [Codecov](https://codecov.io/gh/llm-dev-ops/llm-forge)
+- **Issues**: [GitHub Issues](https://github.com/globalbusinessadvisors/llm-forge/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/globalbusinessadvisors/llm-forge/discussions)
+- **CI/CD Status**: [GitHub Actions](https://github.com/globalbusinessadvisors/llm-forge/actions)
+- **npm Package**: [npmjs.com](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
+- **Coverage**: [Codecov](https://codecov.io/gh/globalbusinessadvisors/llm-forge)
 
 ---
 
-**Status**: ✅ Production Ready | **License**: Apache 2.0 | **Version**: 0.0.1
+<div align="center">
 
-**Quality Certification**: Enterprise Grade, Commercially Viable, Bug Free
+**Status**: ✅ Production Ready | **License**: Apache 2.0 | **Version**: 1.0.0
+
+Made with ❤️ by the LLM-Dev-Ops Team
+
+[Getting Started](#-quick-start) · [Documentation](docs/) · [Report Bug](https://github.com/globalbusinessadvisors/llm-forge/issues) · [Request Feature](https://github.com/globalbusinessadvisors/llm-forge/issues/new)
+
+</div>
