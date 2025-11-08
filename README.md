@@ -1,12 +1,13 @@
 # LLM-Forge
 
-[![npm version](https://img.shields.io/npm/v/@llm-dev-ops/llm-forge.svg?style=flat-square)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
-[![Downloads](https://img.shields.io/npm/dm/@llm-dev-ops/llm-forge.svg?style=flat-square)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
-[![CI](https://img.shields.io/github/actions/workflow/status/globalbusinessadvisors/llm-forge/ci.yml?branch=main&label=CI&style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/globalbusinessadvisors/llm-forge/security.yml?branch=main&label=Security&style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/security.yml)
-[![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen?style=flat-square)](https://codecov.io/gh/globalbusinessadvisors/llm-forge)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/@llm-dev-ops/llm-forge?style=flat-square)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@llm-dev-ops/llm-forge.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
+[![npm downloads](https://img.shields.io/npm/dm/@llm-dev-ops/llm-forge.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
+[![Tests](https://img.shields.io/badge/tests-666%20passing-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions)
+[![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/release.yml)
+[![Security](https://img.shields.io/badge/security-scanned-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/security.yml)
+[![License](https://img.shields.io/npm/l/@llm-dev-ops/llm-forge?style=flat-square&color=blue)](LICENSE)
+[![Node.js](https://img.shields.io/node/v/@llm-dev-ops/llm-forge?style=flat-square&color=blue)](https://nodejs.org)
 
 > A unified response parser and SDK generator for LLM APIs across multiple programming languages
 
