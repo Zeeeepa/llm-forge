@@ -1,0 +1,37 @@
+[package]
+name = "forge-benchmarks"
+version = "0.1.0"
+edition = "2021"
+authors = ["LLM-Dev-Ops Team"]
+description = "Canonical benchmark crate for LLM-Forge - TypeScript SDK generator benchmarking"
+license = "Apache-2.0"
+repository = "https://github.com/LLM-Dev-Ops/forge"
+keywords = ["benchmarks", "llm", "forge", "performance"]
+categories = ["development-tools::profiling"]
+
+[lib]
+name = "forge_benchmarks"
+path = "src/lib.rs"
+
+[[bin]]
+name = "run_benchmarks"
+path = "src/bin/run_benchmarks.rs"
+
+[dependencies]
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.0", features = ["full", "process"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.0", features = ["v4"] }
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+tempfile = "3.0"
+
+[[bench]]
+name = "forge_benchmarks"
+harness = false
