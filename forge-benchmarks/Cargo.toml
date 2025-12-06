@@ -25,8 +25,27 @@ serde_json = "1.0"
 thiserror = "1.0"
 tokio = { version = "1.0", features = ["full", "process"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 uuid = { version = "1.0", features = ["v4"] }
+
+# LLM-Dev-Ops Infra crates (Phase 2B integration)
+# These provide enterprise-grade infrastructure for logging, metrics, caching, and configuration
+llm-config-core = { version = "0.5.0", path = "../node_modules/llm-config-manager/crates/llm-config-core", optional = true }
+llm-config-metrics = { version = "0.5.0", path = "../node_modules/llm-config-manager/crates/llm-config-metrics", optional = true }
+llm-config-cache = { version = "0.5.0", path = "../node_modules/llm-config-manager/crates/llm-config-cache", optional = true }
+
+# Prometheus for metrics (required by llm-config-metrics)
+prometheus = { version = "0.13", optional = true }
+lazy_static = { version = "1.4", optional = true }
+
+[features]
+default = []
+# Enable full Infra integration with all LLM-Dev-Ops crates
+infra-full = ["infra-config", "infra-metrics", "infra-cache"]
+# Individual Infra features for selective integration
+infra-config = ["llm-config-core"]
+infra-metrics = ["llm-config-metrics", "prometheus", "lazy_static"]
+infra-cache = ["llm-config-cache", "llm-config-core"]
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
