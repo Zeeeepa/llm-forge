@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@llm-dev-ops/llm-forge.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
 [![npm downloads](https://img.shields.io/npm/dm/@llm-dev-ops/llm-forge.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/@llm-dev-ops/llm-forge)
-[![Tests](https://img.shields.io/badge/tests-818%20passing-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions)
+[![Tests](https://img.shields.io/badge/tests-666%20passing-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge/actions)
 [![Coverage](https://img.shields.io/badge/coverage-93.77%25-brightgreen?style=flat-square)](https://github.com/globalbusinessadvisors/llm-forge)
 [![CI](https://img.shields.io/github/actions/workflow/status/globalbusinessadvisors/llm-forge/ci.yml?style=flat-square&label=CI)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/ci.yml)
 [![Security](https://img.shields.io/github/actions/workflow/status/globalbusinessadvisors/llm-forge/security.yml?style=flat-square&label=security)](https://github.com/globalbusinessadvisors/llm-forge/actions/workflows/security.yml)
@@ -17,7 +17,7 @@ LLM-Forge provides a **production-ready, type-safe** way to parse and normalize 
 - 🔄 **Unified API** - One interface for 12+ LLM providers
 - 🚀 **Ultra-Fast** - 136K-454K ops/sec parsing performance
 - 🛡️ **Type-Safe** - Full TypeScript inference and validation
-- 🧪 **Battle-Tested** - 818 tests, 93.77% coverage
+- 🧪 **Battle-Tested** - 666 tests, 93.77% coverage
 - 📦 **Zero Dependencies** - Lightweight, production-ready
 - 🌐 **Multi-Language** - Generate SDKs in 6 languages
 
@@ -50,7 +50,7 @@ LLM-Forge provides a **production-ready, type-safe** way to parse and normalize 
 - ✅ **Auto-Detection**: Automatically detect provider from response structure
 - ✅ **Streaming Support**: Real-time streaming chunk parsing
 - ✅ **Type-Safe**: Full TypeScript type inference and safety
-- ✅ **Production Ready**: 93.77% test coverage, 818 passing tests
+- ✅ **Production Ready**: 93.77% test coverage, 666 passing tests
 - ✅ **High Performance**: 136K-454K ops/sec parsing, 1-10M ops/sec detection
 
 ### Code Generation (6 Languages)
@@ -76,7 +76,7 @@ LLM-Forge provides a **production-ready, type-safe** way to parse and normalize 
 
 ```
 Test Coverage:  93.77% ✅
-Tests Passing:  818/818 (100%) ✅
+Tests Passing:  666/666 (100%) ✅
 Benchmarks:     27 performance tests ✅
 CI/CD:          7 automated workflows ✅
 Documentation:  Complete ✅
@@ -344,9 +344,9 @@ Generators Coverage: 98.17%
 Parsers Coverage:    98.04%
 Core Coverage:       97.73%
 
-Total Tests: 818 passing
-Test Files:  26 files
-Duration:    ~12 seconds
+Total Tests: 666 passing
+Test Files:  23 files
+Duration:    ~10 seconds
 ```
 
 ### Run Tests
@@ -513,7 +513,7 @@ All PRs must pass:
 - ✅ TypeScript type checking
 - ✅ ESLint linting
 - ✅ Prettier formatting
-- ✅ All 818 tests
+- ✅ All 666 tests
 - ✅ 93%+ code coverage
 - ✅ Security scans
 
@@ -550,7 +550,7 @@ npm install @llm-dev-ops/llm-forge
 - ✅ Go generator
 
 ### ✅ Phase 3: Production Ready (Complete)
-- ✅ Comprehensive testing (818 tests)
+- ✅ Comprehensive testing (666 tests)
 - ✅ 93.77% code coverage
 - ✅ Performance benchmarking
 - ✅ CI/CD pipeline (7 workflows)
@@ -585,7 +585,7 @@ Built with enterprise-grade quality using:
 ```
 Lines of Code:       ~15,000
 Test Coverage:       93.77%
-Tests:              818 passing
+Tests:              666 passing
 Benchmarks:         27 performance tests
 Providers:          12 supported
 Languages:          6 code generators
