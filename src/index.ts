@@ -24,3 +24,15 @@ export * from './generators/index.js';
 
 // Adapters (upstream integration layer)
 export * from './adapters/index.js';
+
+// Execution Context (Agentics Foundational Execution Unit)
+export {
+  ExecutionContext,
+  extractExecutionHeaders,
+  createArtifactRef,
+  type ExecutionResponse,
+  type RepoSpan,
+  type AgentSpan,
+  type ArtifactRef,
+  type SpanStatus,
+} from './service/execution-context.js';

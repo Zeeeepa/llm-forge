@@ -25,6 +25,13 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { randomUUID } from 'crypto';
 
+// Agentics Execution Context
+import {
+  ExecutionContext,
+  extractExecutionHeaders,
+  createArtifactRef,
+} from './execution-context.js';
+
 // Phase 2 imports
 import {
   initPhase2,
@@ -233,6 +240,22 @@ async function handleSDKGenerator(
   const requestId = randomUUID();
   const startTime = Date.now();
 
+  // Agentics: Extract execution context from headers
+  const execHeaders = extractExecutionHeaders(
+    req.headers as Record<string, string | string[] | undefined>
+  );
+  if (req.headers['x-execution-id'] && !execHeaders) {
+    sendError(res, 400, 'MISSING_PARENT_SPAN', 'X-Parent-Span-Id header is required');
+    return;
+  }
+  const execCtx = execHeaders
+    ? new ExecutionContext(execHeaders.executionId, execHeaders.parentSpanId)
+    : null;
+  const agentSpan = execCtx?.startAgentSpan(SDK_AGENT_ID, {
+    version: SDK_AGENT_VERSION,
+    classification: 'GENERATION',
+  });
+
   // Phase 2: Initialize performance tracker
   const signalEmitter = getSignalEmitter();
   const tracker = new PerformanceTracker(requestId, signalEmitter || undefined);
@@ -264,6 +287,16 @@ async function handleSDKGenerator(
     // Phase 2: Complete performance tracking
     const budgetResult = tracker.complete();
 
+    // Agentics: Finalize agent span
+    if (agentSpan && execCtx) {
+      execCtx.attachArtifact(agentSpan, createArtifactRef('sdk-generation-result', response.body));
+      if (response.statusCode >= 200 && response.statusCode < 400) {
+        execCtx.completeAgentSpan(agentSpan);
+      } else {
+        execCtx.failAgentSpan(agentSpan, `HTTP ${response.statusCode}`);
+      }
+    }
+
     log('info', 'SDK Generator completed', {
       requestId,
       statusCode: response.statusCode,
@@ -272,6 +305,10 @@ async function handleSDKGenerator(
       violations: budgetResult.violations.map(v => v.budget),
     });
 
+    const responseBody = execCtx
+      ? JSON.stringify(execCtx.buildResponse(JSON.parse(response.body)))
+      : response.body;
+
     res.writeHead(response.statusCode, {
       'Content-Type': 'application/json',
       'X-Request-ID': requestId,
@@ -279,9 +316,18 @@ async function handleSDKGenerator(
       'X-Agent-Version': SDK_AGENT_VERSION,
       'X-Latency-Ms': String(budgetResult.metrics.latencyMs),
       'X-Within-Budget': String(budgetResult.withinBudget),
+      ...(execCtx ? {
+        'X-Execution-Id': execCtx.executionId,
+        'X-Repo-Span-Id': execCtx.repoSpan.span_id,
+      } : {}),
     });
-    res.end(response.body);
+    res.end(responseBody);
   } catch (error) {
+    // Agentics: Fail agent span on error
+    if (agentSpan && execCtx) {
+      execCtx.failAgentSpan(agentSpan, error instanceof Error ? error.message : String(error));
+    }
+
     // Phase 2: Emit anomaly signal for errors
     if (signalEmitter) {
       signalEmitter.emitAnomaly({
@@ -299,7 +345,14 @@ async function handleSDKGenerator(
       error: error instanceof Error ? error.message : String(error),
     });
 
-    sendError(res, 500, 'INTERNAL_ERROR', 'SDK generation failed');
+    if (execCtx) {
+      sendJSON(res, 500, execCtx.buildResponse({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'SDK generation failed' },
+      }));
+    } else {
+      sendError(res, 500, 'INTERNAL_ERROR', 'SDK generation failed');
+    }
   }
 }
 
@@ -309,6 +362,22 @@ async function handleCLIGenerator(
 ): Promise<void> {
   const requestId = randomUUID();
   const startTime = Date.now();
+
+  // Agentics: Extract execution context from headers
+  const execHeaders = extractExecutionHeaders(
+    req.headers as Record<string, string | string[] | undefined>
+  );
+  if (req.headers['x-execution-id'] && !execHeaders) {
+    sendError(res, 400, 'MISSING_PARENT_SPAN', 'X-Parent-Span-Id header is required');
+    return;
+  }
+  const execCtx = execHeaders
+    ? new ExecutionContext(execHeaders.executionId, execHeaders.parentSpanId)
+    : null;
+  const agentSpan = execCtx?.startAgentSpan(CLI_AGENT_ID, {
+    version: CLI_AGENT_VERSION,
+    classification: 'GENERATION',
+  });
 
   log('info', 'CLI Generator request received', { requestId });
 
@@ -320,27 +389,57 @@ async function handleCLIGenerator(
       verbose: false,
     });
 
+    // Agentics: Finalize agent span
+    const resultJson = JSON.stringify(result);
+    if (agentSpan && execCtx) {
+      execCtx.attachArtifact(agentSpan, createArtifactRef('cli-generation-result', resultJson));
+      if (result.success) {
+        execCtx.completeAgentSpan(agentSpan);
+      } else {
+        execCtx.failAgentSpan(agentSpan, (result.errors ?? []).join('; ') || 'Generation failed');
+      }
+    }
+
     log('info', 'CLI Generator completed', {
       requestId,
       success: result.success,
       duration: Date.now() - startTime,
     });
 
+    const responseBody = execCtx
+      ? JSON.stringify(execCtx.buildResponse(result))
+      : resultJson;
+
     res.writeHead(result.success ? 200 : 400, {
       'Content-Type': 'application/json',
       'X-Request-ID': requestId,
       'X-Agent-ID': CLI_AGENT_ID,
       'X-Agent-Version': CLI_AGENT_VERSION,
+      ...(execCtx ? {
+        'X-Execution-Id': execCtx.executionId,
+        'X-Repo-Span-Id': execCtx.repoSpan.span_id,
+      } : {}),
     });
 
-    res.end(JSON.stringify(result));
+    res.end(responseBody);
   } catch (error) {
+    if (agentSpan && execCtx) {
+      execCtx.failAgentSpan(agentSpan, error instanceof Error ? error.message : String(error));
+    }
+
     log('error', 'CLI Generator error', {
       requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    sendError(res, 500, 'INTERNAL_ERROR', 'CLI generation failed');
+    if (execCtx) {
+      sendJSON(res, 500, execCtx.buildResponse({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'CLI generation failed' },
+      }));
+    } else {
+      sendError(res, 500, 'INTERNAL_ERROR', 'CLI generation failed');
+    }
   }
 }
 
@@ -350,6 +449,22 @@ async function handleAPITranslator(
 ): Promise<void> {
   const requestId = randomUUID();
   const startTime = Date.now();
+
+  // Agentics: Extract execution context from headers
+  const execHeaders = extractExecutionHeaders(
+    req.headers as Record<string, string | string[] | undefined>
+  );
+  if (req.headers['x-execution-id'] && !execHeaders) {
+    sendError(res, 400, 'MISSING_PARENT_SPAN', 'X-Parent-Span-Id header is required');
+    return;
+  }
+  const execCtx = execHeaders
+    ? new ExecutionContext(execHeaders.executionId, execHeaders.parentSpanId)
+    : null;
+  const agentSpan = execCtx?.startAgentSpan(TRANSLATOR_AGENT_ID, {
+    version: TRANSLATOR_AGENT_VERSION,
+    classification: 'TRANSLATION',
+  });
 
   log('info', 'API Translator request received', { requestId });
 
@@ -366,27 +481,57 @@ async function handleAPITranslator(
       requestId,
     });
 
+    // Agentics: Finalize agent span
+    const resultJson = JSON.stringify(result);
+    if (agentSpan && execCtx) {
+      execCtx.attachArtifact(agentSpan, createArtifactRef('api-translation-result', resultJson));
+      if (result.success) {
+        execCtx.completeAgentSpan(agentSpan);
+      } else {
+        execCtx.failAgentSpan(agentSpan, (result.errors ?? []).join('; ') || 'Translation failed');
+      }
+    }
+
     log('info', 'API Translator completed', {
       requestId,
       success: result.success,
       duration: Date.now() - startTime,
     });
 
+    const responseBody = execCtx
+      ? JSON.stringify(execCtx.buildResponse(result))
+      : resultJson;
+
     res.writeHead(result.success ? 200 : 400, {
       'Content-Type': 'application/json',
       'X-Request-ID': requestId,
       'X-Agent-ID': TRANSLATOR_AGENT_ID,
       'X-Agent-Version': TRANSLATOR_AGENT_VERSION,
+      ...(execCtx ? {
+        'X-Execution-Id': execCtx.executionId,
+        'X-Repo-Span-Id': execCtx.repoSpan.span_id,
+      } : {}),
     });
 
-    res.end(JSON.stringify(result));
+    res.end(responseBody);
   } catch (error) {
+    if (agentSpan && execCtx) {
+      execCtx.failAgentSpan(agentSpan, error instanceof Error ? error.message : String(error));
+    }
+
     log('error', 'API Translator error', {
       requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    sendError(res, 500, 'INTERNAL_ERROR', 'API translation failed');
+    if (execCtx) {
+      sendJSON(res, 500, execCtx.buildResponse({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'API translation failed' },
+      }));
+    } else {
+      sendError(res, 500, 'INTERNAL_ERROR', 'API translation failed');
+    }
   }
 }
 
@@ -396,6 +541,22 @@ async function handleVersionCompatibility(
 ): Promise<void> {
   const requestId = randomUUID();
   const startTime = Date.now();
+
+  // Agentics: Extract execution context from headers
+  const execHeaders = extractExecutionHeaders(
+    req.headers as Record<string, string | string[] | undefined>
+  );
+  if (req.headers['x-execution-id'] && !execHeaders) {
+    sendError(res, 400, 'MISSING_PARENT_SPAN', 'X-Parent-Span-Id header is required');
+    return;
+  }
+  const execCtx = execHeaders
+    ? new ExecutionContext(execHeaders.executionId, execHeaders.parentSpanId)
+    : null;
+  const agentSpan = execCtx?.startAgentSpan(VC_AGENT_ID, {
+    version: VC_AGENT_VERSION,
+    classification: 'VALIDATION',
+  });
 
   log('info', 'Version Compatibility request received', { requestId });
 
@@ -412,6 +573,17 @@ async function handleVersionCompatibility(
       requestId,
     });
 
+    // Agentics: Finalize agent span
+    const resultJson = JSON.stringify(result);
+    if (agentSpan && execCtx) {
+      execCtx.attachArtifact(agentSpan, createArtifactRef('compatibility-analysis-result', resultJson));
+      if (result.success) {
+        execCtx.completeAgentSpan(agentSpan);
+      } else {
+        execCtx.failAgentSpan(agentSpan, (result.errors ?? []).join('; ') || 'Analysis failed');
+      }
+    }
+
     log('info', 'Version Compatibility completed', {
       requestId,
       success: result.success,
@@ -419,21 +591,40 @@ async function handleVersionCompatibility(
       duration: Date.now() - startTime,
     });
 
+    const responseBody = execCtx
+      ? JSON.stringify(execCtx.buildResponse(result))
+      : resultJson;
+
     res.writeHead(result.success ? 200 : 400, {
       'Content-Type': 'application/json',
       'X-Request-ID': requestId,
       'X-Agent-ID': VC_AGENT_ID,
       'X-Agent-Version': VC_AGENT_VERSION,
+      ...(execCtx ? {
+        'X-Execution-Id': execCtx.executionId,
+        'X-Repo-Span-Id': execCtx.repoSpan.span_id,
+      } : {}),
     });
 
-    res.end(JSON.stringify(result));
+    res.end(responseBody);
   } catch (error) {
+    if (agentSpan && execCtx) {
+      execCtx.failAgentSpan(agentSpan, error instanceof Error ? error.message : String(error));
+    }
+
     log('error', 'Version Compatibility error', {
       requestId,
       error: error instanceof Error ? error.message : String(error),
     });
 
-    sendError(res, 500, 'INTERNAL_ERROR', 'Compatibility analysis failed');
+    if (execCtx) {
+      sendJSON(res, 500, execCtx.buildResponse({
+        success: false,
+        error: { code: 'INTERNAL_ERROR', message: 'Compatibility analysis failed' },
+      }));
+    } else {
+      sendError(res, 500, 'INTERNAL_ERROR', 'Compatibility analysis failed');
+    }
   }
 }
 
@@ -493,7 +684,7 @@ async function handleRequest(
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGINS || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Execution-Id, X-Parent-Span-Id');
 
   // Handle preflight
   if (method === 'OPTIONS') {
